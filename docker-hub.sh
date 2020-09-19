@@ -62,28 +62,6 @@ push_manifests() {
 }
 
 #
-# Obtains JWT from Docker Hub.
-#
-# $1 - The Docker Hub username.
-# $1 - The Docker Hub password.
-#
-# Examples:
-#
-#   get_token "name" "password"
-#
-get_token() {
-  declare -r username="${1}"
-  declare -r password="${2}"
-
-  local token=$(curl -s -X POST \
-    -H "Content-Type: application/json" \
-    -d '{"username": "'"${username}"'", "password": "'"${password}"'"}' \
-    https://hub.docker.com/v2/users/login/ | jq -r .token)
-
-  echo "${token}"
-}
-
-#
 # Deletes a tag on a remote server using Docker API v2.
 #
 # $1 - The image name.
@@ -184,9 +162,6 @@ push() {
   declare -r tag="${3}"
   declare -r platforms=($(echo "${4}" | tr ',' '\n'))
 
-  # Login into Docker repository
-  echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
-
   if [[ "${tag}" =~ ^v?([0-9]+\.[0-9]+\.[0-9]+) ]]; then
     local version="${BASH_REMATCH[1]}"
   else
@@ -200,6 +175,32 @@ push() {
   done
 
   push_manifests "${image}" "${commit}" "${version}" "${4}"
+}
+
+#
+# Logs in to Docker Hub and obtains JWT.
+#
+# $1 - The Docker Hub username.
+# $1 - The Docker Hub password.
+#
+# Examples:
+#
+#   login "name" "password"
+#
+login() {
+  declare -r username="${1}"
+  declare -r password="${2}"
+
+  # Login into Docker repository
+  echo "${password}" | docker login -u "${username}" --password-stdin
+
+  # 
+  local token=$(curl -s -X POST \
+    -H "Content-Type: application/json" \
+    -d '{"username": "'"${username}"'", "password": "'"${password}"'"}' \
+    https://hub.docker.com/v2/users/login/ | jq -r .token)
+
+  echo "${token}"
 }
 
 "$@"

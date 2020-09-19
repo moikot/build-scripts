@@ -13,7 +13,7 @@ set -e
 #   setup "tcp://0.0.0.0:1234" "linux/and64,linux/arm64"
 #
 setup() {
-  declare -r buildkit_host=="${1}"
+  declare -r addr=="${1}"
   declare -r platforms=($(echo "${2}" | tr ',' '\n'))
 
   # Enabling server experimental features
@@ -28,10 +28,10 @@ setup() {
     worker_platforms="${worker_platforms} --oci-worker-platform ${platform}"
   done
 
-  if [[ "${buildkit_host}" =~ ^tcp://.*:([0-9]*) ]]; then
+  if [[ "${addr}" =~ ^tcp://.*:([0-9]*) ]]; then
     local port="${BASH_REMATCH[1]}"
   else
-    printf "Port is not specified in \n" "${buildkit_host}"
+    printf "Port is not specified in \n" "${addr}"
     exit 1
   fi
 
@@ -39,7 +39,7 @@ setup() {
   sudo docker run -d --privileged \
     -p "${port}":"${port}" \
     --name buildkit moby/buildkit:latest \
-    --addr "${buildkit_host}" \
+    --addr "${addr}" \
     ${worker_platforms}
 
   # Extracting buildctl into /usr/bin/
